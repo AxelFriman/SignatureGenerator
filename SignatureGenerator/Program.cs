@@ -2,6 +2,7 @@
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 
 namespace SignatureGenerator
 {
@@ -17,10 +18,14 @@ namespace SignatureGenerator
             {
                 while ((blockId + 1) * blockSize <= fstream.Length)
                 {
-                    byte[] block = new byte[blockSize];
-                    fstream.ReadAsync(block, 0, blockSize);
-                    byte[] hash = mySHA256.ComputeHash(block);
-                    Console.WriteLine($"{blockId} - {BytesToString(hash)}");
+                    Thread myThread = new Thread(new ParameterizedThreadStart((Id) =>
+                    {
+                        byte[] block = new byte[blockSize];
+                        fstream.ReadAsync(block, 0, blockSize);
+                        byte[] hash = mySHA256.ComputeHash(block);
+                        Console.WriteLine($"{Id} - {BytesToString(hash)}");
+                    }));
+                    myThread.Start(blockId);
                     blockId++;
                 }
             }
