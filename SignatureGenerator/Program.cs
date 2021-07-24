@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
@@ -16,8 +17,9 @@ namespace SignatureGenerator
         static void Main(string[] args)
         {
             string path = @"theFile.txt";
-            int blockSize = 11;
+            int blockSize = 100000000;
             int blockId = 0;
+            SortedDictionary<int, string> signature = new();
             using (SHA256 mySHA256 = SHA256.Create())
             using (FileStream fstream = File.OpenRead($"{path}"))
             {
@@ -33,13 +35,18 @@ namespace SignatureGenerator
                     {
                         BlockOfBytes block = (BlockOfBytes)blockObj;
                         byte[] hash = mySHA256.ComputeHash(block.data);
-                        Console.WriteLine($"{block.id} - {BytesToString(block.data)} - {BytesToString(hash)}");
+                        signature.Add(block.id, BytesToString(hash));
+                        //Console.WriteLine($"{block.id} - {BytesToString(block.data)} - {BytesToString(hash)}");
                     }));
                     myThread.Start(block);
                     blockId++;
                 }
+                Thread.Sleep(5000);
             }
-            Console.WriteLine();
+            foreach (var block in signature)
+            {
+                Console.WriteLine($"{block.Key} - {block.Value}");
+            }
         }
         static object locker = new object();
 
