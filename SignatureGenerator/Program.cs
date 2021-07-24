@@ -18,11 +18,15 @@ namespace SignatureGenerator
                 while ((blockId + 1) * blockSize <= fstream.Length)
                 {
                     byte[] block = new byte[blockSize];
-                    fstream.ReadAsync(block, 0, blockSize);
+                    fstream.Read(block, 0, blockSize);
                     byte[] hash = mySHA256.ComputeHash(block);
-                    Console.WriteLine($"{blockId} - {BytesToString(hash)}");
+                    Console.WriteLine($"{blockId} - {BytesToString(hash)} - {fstream.Position}");
                     blockId++;
                 }
+            }
+            using (StreamReader file = new StreamReader(path))
+            {
+                Console.WriteLine(file.ReadLine());
             }
         }
 
