@@ -6,6 +6,11 @@ using System.Threading;
 
 namespace SignatureGenerator
 {
+    class TPL
+    {
+        public int id;
+        public byte[] block;
+    }
     class Program
     {
         static void Main(string[] args)
@@ -18,27 +23,32 @@ namespace SignatureGenerator
             {
                 while ((blockId + 1) * blockSize <= fstream.Length)
                 {
-                    Thread myThread = new Thread(new ParameterizedThreadStart((Id) =>
+                    byte[] block = new byte[blockSize];
+                    fstream.Read(block, 0, blockSize);
+                    Thread myThread = new Thread(new ParameterizedThreadStart((tpl) =>
                     {
-                        byte[] block = new byte[blockSize];
-                        fstream.ReadAsync(block, 0, blockSize);
-                        byte[] hash = mySHA256.ComputeHash(block);
-                        Console.WriteLine($"{Id} - {BytesToString(hash)}");
+                        //byte[] hash = mySHA256.ComputeHash(block);
+                        TPL temp = (TPL)tpl;
+                        Console.WriteLine($"{temp.id} - {BytesToString(temp.block)}");
                     }));
-                    myThread.Start(blockId);
+                    myThread.Start(new TPL() { id = blockId, block = block});
                     blockId++;
                 }
             }
+            Console.WriteLine();
         }
+        static object locker = new object();
 
         static string BytesToString(byte[] bytes)
         {
-            StringBuilder str = new();
-            foreach (var b in bytes)
-            {
-                str.Append(String.Format("{0:X2}", b));
+            lock (locker) {
+                StringBuilder str = new();
+                foreach (var b in bytes)
+                {
+                    str.Append(String.Format("{0:X2}", b));
+                }
+                return str.ToString();
             }
-            return str.ToString();
         }
     }
 }
