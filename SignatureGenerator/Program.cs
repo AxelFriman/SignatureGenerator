@@ -21,8 +21,6 @@ namespace SignatureGenerator
             {
                 while ((blockId + 1) * (long) blockSize <= fstream.Length)
                 {
-                    Console.WriteLine($"[{blockId}/{fstream.Length/blockSize}]");
-                    Console.WriteLine($"({blockId}+1)*{blockSize} ({(blockId + 1) * blockSize}) <= {fstream.Length}");
                     var block = new BlockOfBytes(blockId, new byte[blockSize]);
                     fstream.Read(block.data, 0, blockSize);
 
@@ -32,7 +30,6 @@ namespace SignatureGenerator
                     myThread.Start(block);
                     blockId++;
                 }
-                Console.WriteLine("DONE");
 
                 if (threads != null)
                 {
