@@ -1,66 +1,74 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
-using System.Text;
 using System.Threading;
 
 namespace SignatureGenerator
 {
-    class BlockOfBytes
-    {
-        public int id;
-        public byte[] data;
-    }
     class Program
     {
         static void Main(string[] args)
         {
-            string path = @"theFile.txt";
-            int blockSize = 100000000;
+            //string path = @"theFile1.txt";
+            string path = @"F:/theFileL.txt";
+            int blockSize = 100_000_000;
             int blockId = 0;
-            SortedDictionary<int, string> signature = new();
-            using (SHA256 mySHA256 = SHA256.Create())
+            List<Thread> threads = new List<Thread>();
+            
             using (FileStream fstream = File.OpenRead($"{path}"))
             {
-                while ((blockId + 1) * blockSize <= fstream.Length)
+                while ((blockId + 1) * (long) blockSize <= fstream.Length)
                 {
-                    var block = new BlockOfBytes()
-                    {
-                        id = blockId,
-                        data = new byte[blockSize]
-                    };
+                    Console.WriteLine($"[{blockId}/{fstream.Length/blockSize}]");
+                    Console.WriteLine($"({blockId}+1)*{blockSize} ({(blockId + 1) * blockSize}) <= {fstream.Length}");
+                    var block = new BlockOfBytes(blockId, new byte[blockSize]);
                     fstream.Read(block.data, 0, blockSize);
-                    Thread myThread = new Thread(new ParameterizedThreadStart((blockObj) =>
-                    {
-                        BlockOfBytes block = (BlockOfBytes)blockObj;
-                        byte[] hash = mySHA256.ComputeHash(block.data);
-                        signature.Add(block.id, BytesToString(hash));
-                        //Console.WriteLine($"{block.id} - {BytesToString(block.data)} - {BytesToString(hash)}");
-                    }));
+
+                    Thread myThread = new Thread(new ParameterizedThreadStart(new Signature().AddSignature));
+
+                    threads.Add(myThread);
                     myThread.Start(block);
                     blockId++;
                 }
-                Thread.Sleep(5000);
+                Console.WriteLine("DONE");
+
+                if (threads != null)
+                {
+                    foreach (Thread thread in threads)
+                    {
+                        thread.Join();
+                    }
+                }
             }
-            foreach (var block in signature)
+
+            Signature.PrintSignature();
+        }
+    }
+    public record BlockOfBytes(int id, byte[] data);
+    public class Signature
+    {
+        public static ConcurrentDictionary<int, string> Sign { get; set; } = new();
+        public static void PrintSignature()
+        {
+            foreach (var block in Sign)
             {
                 Console.WriteLine($"{block.Key} - {block.Value}");
             }
-        }
-        static object locker = new object();
 
-        static string BytesToString(byte[] bytes)
+        }
+        public void AddSignature(object blockObj)
         {
-            lock (locker)
+            BlockOfBytes block = (BlockOfBytes)blockObj;
+            byte[] hash = new byte[1];
+            using (SHA256 mySHA256 = SHA256.Create())
             {
-                StringBuilder str = new();
-                foreach (var b in bytes)
-                {
-                    str.Append(String.Format("{0:X2}", b));
-                }
-                return str.ToString();
+                hash = mySHA256.ComputeHash(block.data);
             }
+            int id = block.id;
+            block = null; 
+            Sign.TryAdd(id, BitConverter.ToString(hash).Replace("-", ""));
         }
     }
 }
