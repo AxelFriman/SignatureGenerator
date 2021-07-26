@@ -55,7 +55,6 @@ namespace SignatureGenerator
                     }
                 }
             }
-
             Signature.PrintSignature();
         }
     }
